@@ -28,10 +28,10 @@ type NSInstance struct {
 	Output       io.Writer
 	InfoCallback InfoCallbackFunc
 
-	mu          sync.Mutex    // for reading the pointers, which are initialized when Run is called and not set again (DO NOT HOLD THIS LOCK FOR A LONG TIME)
-	terminated  chan struct{} // close when terminating
-	wait        chan struct{} // closed by run when the instance exits
-	gameCmd   *exec.Cmd
+	mu         sync.Mutex    // for reading the pointers, which are initialized when Run is called and not set again (DO NOT HOLD THIS LOCK FOR A LONG TIME)
+	terminated chan struct{} // close when terminating
+	wait       chan struct{} // closed by run when the instance exits
+	gameCmd    *exec.Cmd
 }
 
 // InfoCallbackFunc is function which will be called when the Northstar
@@ -202,7 +202,7 @@ func (n *NSInstance) Run() error {
 		status                NSInstanceStatus
 		titleMatchFailCounter int
 		titleRateLimit        = ratelimit(ctx, time.Second/2, 1)
-		watchdog              = CreateWatchdog(time.Minute*4, time.Second*5)
+		watchdog              = CreateWatchdog(time.Minute*4, time.Minute)
 	)
 	for {
 		select {
@@ -409,8 +409,8 @@ func setuppty() (*PTY, error) {
 	}
 
 	// pty config
-	tos.IFlag = BRKINT | IGNPAR | ISTRIP | ICRNL | IUTF8
-	tos.OFlag = OPOST | OCRNL
+	tos.IFlag = BRKINT | IGNPAR | ISTRIP | IGNCR | IUTF8
+	tos.OFlag = OPOST | ONOCR
 	tos.CFlag = CREAD
 	tos.LFlag = ISIG | ICANON
 
