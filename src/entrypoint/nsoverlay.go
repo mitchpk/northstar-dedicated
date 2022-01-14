@@ -127,7 +127,10 @@ func (n *NSOverlay) mergeMods(p string) error {
 	}
 	for _, e := range es {
 		if _, err := os.Stat(filepath.Join(n.Path, "R2Northstar/mods", e.Name())); err == nil {
-			return fmt.Errorf("not allowed to override built-in mod %s", e.Name())
+			fmt.Printf("Warning: Overriding built-in mod %s\n", e.Name())
+			if err := os.RemoveAll(filepath.Join(n.Path, "R2Northstar/mods", e.Name())); err != nil {
+				return err
+			}
 		}
 		if err := checkedSymlink(filepath.Join(p, e.Name()), filepath.Join(n.Path, "R2Northstar/mods", e.Name())); err != nil {
 			return err
