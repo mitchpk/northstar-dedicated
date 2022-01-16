@@ -181,6 +181,11 @@ func (n *NSInstance) Run() error {
 		go func() {
 			xvfbResult <- xvfbCmd.Wait()
 		}()
+		defer func() {
+			if xvfbCmd.ProcessState != nil && !xvfbCmd.ProcessState.Exited() {
+				xvfbCmd.Process.Signal(syscall.SIGKILL)
+			}
+		}()
 		time.Sleep(time.Second * 2)
 
 		n.gameCmd.Env = append(n.gameCmd.Env,
@@ -215,12 +220,12 @@ func (n *NSInstance) Run() error {
 			}
 			return fmt.Errorf("xvfb exited prematurely")
 
-		case <-gameResult: // game exited
+		case err := <-gameResult: // waiter exited
 			select {
 			case <-n.terminated:
 				return fmt.Errorf("server terminated")
 			default:
-				return fmt.Errorf("server exited")
+				return fmt.Errorf("server exited: %w", err)
 			}
 
 		case <-ctx.Done(): // parent context is done
@@ -328,11 +333,7 @@ func (n *NSInstance) sendTerminate(force bool) {
 	default:
 	}
 
-	var (
-		game = n.gameCmd != nil && n.gameCmd.ProcessState != nil && !n.gameCmd.ProcessState.Exited()
-	)
-
-	if game {
+	if n.gameCmd != nil && n.gameCmd.ProcessState != nil && !n.gameCmd.ProcessState.Exited() {
 		if force {
 			n.gameCmd.Process.Signal(syscall.SIGKILL)
 			n.winecmd("wineserver", "--kill").Start()
